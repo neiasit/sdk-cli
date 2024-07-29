@@ -26,6 +26,8 @@ jobs:
     steps:
       - name: Check out code
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.MY_GITHUB_TOKEN }}
 
       - name: Set up Go
         uses: actions/setup-go@v4
@@ -49,14 +51,16 @@ jobs:
     steps:
       - name: Check out code
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.MY_GITHUB_TOKEN }}
 
       - name: Create Tag
         id: create_tag
-        run: |
-          TAG_NAME=v1.0.${{ github.run_number }}
-          git tag $TAG_NAME
-          git push origin $TAG_NAME
-          echo "TAG_NAME=$TAG_NAME" >> $GITHUB_ENV
+        uses: anothrNick/github-tag-action@v1.37.3
+        with:
+          github_token: ${{ secrets.MY_GITHUB_TOKEN }}
+          tag_prefix: "v"
+          release_branches: "main"
 
       - name: Create Release
         id: create_release
@@ -64,8 +68,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
         with:
-          tag_name: ${{ env.TAG_NAME }}
-          release_name: Release ${{ env.TAG_NAME }}
+          tag_name: ${{ steps.create_tag.outputs.new_tag }}
+          release_name: Release ${{ steps.create_tag.outputs.new_tag }}
           draft: false
           prerelease: false
 
