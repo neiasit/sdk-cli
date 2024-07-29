@@ -1,1 +1,1 @@
-go build -o neiasit ./cmd/cli/main.go
+go build -o neiasit ./cmd/cli
