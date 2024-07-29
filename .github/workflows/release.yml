@@ -54,13 +54,13 @@ jobs:
         with:
           token: ${{ secrets.MY_GITHUB_TOKEN }}
 
-      - name: Create Tag
+      - name: Bump version and push tag
         id: create_tag
-        uses: anothrNick/github-tag-action@v1
-        with:
-          github_token: ${{ secrets.MY_GITHUB_TOKEN }}
-          tag_prefix: "v"
-          release_branches: "main"
+        uses: anothrNick/github-tag-action@v1 # Don't use @master or @v1 unless you're happy to test the latest version
+        env:
+          GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }} # if you don't want to set write permissions use a PAT token
+          WITH_V: true
+          PRERELEASE: true
 
       - name: Create Release
         id: create_release
