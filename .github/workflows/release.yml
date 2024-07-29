@@ -22,9 +22,9 @@ jobs:
       - name: Build binaries
         run: |
           mkdir -p release
-          GOOS=linux GOARCH=amd64 go build -o release/myapp-linux-amd64
-          GOOS=darwin GOARCH=amd64 go build -o release/myapp-darwin-amd64
-          GOOS=windows GOARCH=amd64 go build -o release/myapp-windows-amd64.exe
+          GOOS=linux GOARCH=amd64 go build -o release/myapp-linux-amd64 cmd/cli
+          GOOS=darwin GOARCH=amd64 go build -o release/myapp-darwin-amd64 cmd/cli
+          GOOS=windows GOARCH=amd64 go build -o release/myapp-windows-amd64.exe cmd/cli
 
       - name: Create GitHub Release
         id: create_release
