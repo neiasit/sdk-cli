@@ -26,6 +26,5 @@ jobs:
           github_token: ${{ secrets.MY_GITHUB_TOKEN }}
           goos: ${{ matrix.goos }}
           goarch: ${{ matrix.goarch }}
-          goversion: "https://dl.google.com/go/go1.13.1.linux-amd64.tar.gz"
           project_path: "./cmd/cli"
           binary_name: "neiasit"
