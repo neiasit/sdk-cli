@@ -30,9 +30,39 @@ jobs:
         run: |
           zip neiasit-${{ matrix.goos }}-${{ matrix.goarch }}.zip neiasit-${{ matrix.goos }}-${{ matrix.goarch }}
 
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: neiasit-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: neiasit-${{ matrix.goos }}-${{ matrix.goarch }}.zip
+
+  release:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Download Artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: neiasit-linux-amd64
+          path: .
+
+      - name: Download Artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: neiasit-darwin-amd64
+          path: .
+
+      - name: Download Artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: neiasit-windows-amd64
+          path: .
+
       - name: Create Release
         id: create_release
-        if: matrix.goos == 'linux' && matrix.goarch == 'amd64'
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
@@ -43,7 +73,6 @@ jobs:
           prerelease: false
 
       - name: Upload Release Asset for Linux
-        if: matrix.goos == 'linux'
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
@@ -54,7 +83,6 @@ jobs:
           asset_content_type: application/zip
 
       - name: Upload Release Asset for macOS
-        if: matrix.goos == 'darwin'
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
@@ -65,7 +93,6 @@ jobs:
           asset_content_type: application/zip
 
       - name: Upload Release Asset for Windows
-        if: matrix.goos == 'windows'
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
