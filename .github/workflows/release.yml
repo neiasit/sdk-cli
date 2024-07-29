@@ -8,6 +8,10 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        goos: [linux, darwin, windows]
+        goarch: [amd64]
 
     steps:
       - name: Checkout repository
@@ -20,14 +24,15 @@ jobs:
 
       - name: Build CLI
         run: |
-          go build -o neiasit ./cmd/cli
+          GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -o neiasit-${{ matrix.goos }}-${{ matrix.goarch }} ./cmd/cli
 
       - name: Archive neiasit binary
         run: |
-          zip neiasit.zip neiasit
+          zip neiasit-${{ matrix.goos }}-${{ matrix.goarch }}.zip neiasit-${{ matrix.goos }}-${{ matrix.goarch }}
 
       - name: Create Release
         id: create_release
+        if: matrix.goos == 'linux' && matrix.goarch == 'amd64'
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
@@ -43,6 +48,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./neiasit.zip
-          asset_name: neiasit.zip
+          asset_path: ./neiasit-${{ matrix.goos }}-${{ matrix.goarch }}.zip
+          asset_name: neiasit-${{ matrix.goos }}-${{ matrix.goarch }}.zip
           asset_content_type: application/zip
