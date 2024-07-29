@@ -1,68 +1,48 @@
-name: Go Release
+name: Release
 
 on:
   push:
     tags:
-      - 'v*.*.*'
+      - 'v*'
 
 jobs:
   build:
-    name: Build and Release
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v2
 
       - name: Set up Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v2
         with:
           go-version: 1.22.5
 
-      - name: Build binaries
+      - name: Build CLI
         run: |
-          mkdir -p release
-          GOOS=linux GOARCH=amd64 go build -o release/myapp-linux-amd64 cmd/cli
-          GOOS=darwin GOARCH=amd64 go build -o release/myapp-darwin-amd64 cmd/cli
-          GOOS=windows GOARCH=amd64 go build -o release/myapp-windows-amd64.exe cmd/cli
+          go build -o neiasit ./cmd/cli
 
-      - name: Create GitHub Release
+      - name: Archive neiasit binary
+        run: |
+          zip neiasit.zip neiasit
+
+      - name: Create Release
         id: create_release
         uses: actions/create-release@v1
         env:
-          GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ github.ref }}
           release_name: Release ${{ github.ref }}
           draft: false
           prerelease: false
 
-      - name: Upload Release Assets
+      - name: Upload Release Asset
         uses: actions/upload-release-asset@v1
         env:
-          GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: release/myapp-linux-amd64
-          asset_name: myapp-linux-amd64
-          asset_content_type: application/octet-stream
-
-      - name: Upload Release Assets
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: release/myapp-darwin-amd64
-          asset_name: myapp-darwin-amd64
-          asset_content_type: application/octet-stream
-
-      - name: Upload Release Assets
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: release/myapp-windows-amd64.exe
-          asset_name: myapp-windows-amd64.exe
-          asset_content_type: application/octet-stream
+          asset_path: ./neiasit.zip
+          asset_name: neiasit.zip
+          asset_content_type: application/zip
