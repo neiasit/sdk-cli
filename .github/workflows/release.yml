@@ -26,5 +26,5 @@ jobs:
           github_token: ${{ secrets.MY_GITHUB_TOKEN }}
           goos: ${{ matrix.goos }}
           goarch: ${{ matrix.goarch }}
-          project_path: "sdk-cli/cmd/cli"
+          project_path: "./cmd/cli"
           binary_name: "neiasit"
