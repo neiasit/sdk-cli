@@ -56,7 +56,7 @@ jobs:
 
       - name: Create Tag
         id: create_tag
-        uses: anothrNick/github-tag-action@v1.37.3
+        uses: anothrNick/github-tag-action@v1
         with:
           github_token: ${{ secrets.MY_GITHUB_TOKEN }}
           tag_prefix: "v"
