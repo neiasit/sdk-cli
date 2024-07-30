@@ -24,11 +24,12 @@ jobs:
 
       - name: Build CLI
         run: |
-          GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -o neiasit-${{ matrix.goos }}-${{ matrix.goarch }} ./cmd/cli
+          GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} \
+          go build -o neiasit${{ matrix.goos == 'windows' && '.exe' || '' }} ./cmd/cli
 
       - name: Archive neiasit binary
         run: |
-          zip neiasit-${{ matrix.goos }}-${{ matrix.goarch }}.zip neiasit-${{ matrix.goos }}-${{ matrix.goarch }}
+          zip neiasit-${{ matrix.goos }}-${{ matrix.goarch }}.zip neiasit${{ matrix.goos == 'windows' && '.exe' || '' }}
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v2
@@ -101,3 +102,19 @@ jobs:
           asset_path: ./neiasit-windows-amd64.zip
           asset_name: neiasit-windows-amd64.zip
           asset_content_type: application/zip
+
+  test_windows:
+    runs-on: windows-latest
+    needs: build
+    steps:
+      - name: Download Artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: neiasit-windows-amd64
+          path: .
+
+      - name: Extract Artifact
+        run: Expand-Archive -Path neiasit-windows-amd64.zip -DestinationPath .
+
+      - name: Run CLI
+        run: ./neiasit.exe --help
