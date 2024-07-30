@@ -56,6 +56,34 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+            goos: linux
+            goarch: amd64
+          - os: ubuntu-latest
+            goos: linux
+            goarch: arm64
+          - os: ubuntu-latest
+            goos: linux
+            goarch: arm
+          - os: windows-latest
+            goos: windows
+            goarch: amd64
+          - os: windows-latest
+            goos: windows
+            goarch: 386
+          - os: ubuntu-latest
+            goos: freebsd
+            goarch: amd64
+          - os: ubuntu-latest
+            goos: freebsd
+            goarch: arm64
+          - os: ubuntu-latest
+            goos: openbsd
+            goarch: amd64
+          - os: ubuntu-latest
+            goos: openbsd
+            goarch: arm64
 
     steps:
       - name: Checkout repository
@@ -64,16 +92,16 @@ jobs:
       - name: Download Artifact
         uses: actions/download-artifact@v2
         with:
-          name: neiasit-${{ matrix.os == 'ubuntu-latest' && 'linux-amd64' || matrix.os == 'windows-latest' && 'windows-amd64' }}
+          name: neiasit-${{ matrix.goos }}-${{ matrix.goarch }}
           path: .
 
       - name: Extract Artifact on Linux
         if: matrix.os == 'ubuntu-latest'
-        run: unzip neiasit-linux-amd64.zip
+        run: unzip neiasit-${{ matrix.goos }}-${{ matrix.goarch }}.zip
 
       - name: Extract Artifact on Windows
         if: matrix.os == 'windows-latest'
-        run: Expand-Archive -Path neiasit-windows-amd64.zip -DestinationPath .
+        run: Expand-Archive -Path neiasit-${{ matrix.goos }}-${{ matrix.goarch }}.zip -DestinationPath .
 
       - name: Run CLI on Linux
         if: matrix.os == 'ubuntu-latest'
