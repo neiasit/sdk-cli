@@ -10,8 +10,21 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        goos: [linux, windows]
-        goarch: [amd64]
+        goos: [linux, windows, freebsd, openbsd]
+        goarch: [amd64, arm64, 386, arm]
+        exclude:
+          - goos: windows
+            goarch: arm
+          - goos: windows
+            goarch: arm64
+          - goos: freebsd
+            goarch: 386
+          - goos: freebsd
+            goarch: arm
+          - goos: openbsd
+            goarch: 386
+          - goos: openbsd
+            goarch: arm
 
     steps:
       - name: Checkout repository
@@ -26,17 +39,6 @@ jobs:
         run: |
           GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} \
           go build -o neiasit${{ matrix.goos == 'windows' && '.exe' || '' }} ./cmd/cli
-
-#      - name: Sign macOS binary
-#        if: matrix.goos == 'darwin'
-#        run: |
-#          echo ${{ secrets.APPLE_CERTIFICATE }} | base64 --decode > /tmp/certificate.p12
-#          security create-keychain -p "actions" build.keychain
-#          security import /tmp/certificate.p12 -k build.keychain -P ${{ secrets.CERTIFICATE_PASSWORD }} -A
-#          security list-keychains -s build.keychain
-#          security unlock-keychain -p "actions" build.keychain
-#          security set-key-partition-list -S apple-tool:,apple: -s -k "actions" build.keychain
-#          codesign --deep --force --verbose --sign "Developer ID Application: Your Name (TEAMID)" neiasit
 
       - name: Archive neiasit binary
         run: |
@@ -62,16 +64,12 @@ jobs:
       - name: Download Artifact
         uses: actions/download-artifact@v2
         with:
-          name: neiasit-${{ matrix.os == 'ubuntu-latest' && 'linux-amd64' || matrix.os == 'macos-latest' && 'darwin-amd64' || 'windows-amd64' }}
+          name: neiasit-${{ matrix.os == 'ubuntu-latest' && 'linux-amd64' || matrix.os == 'windows-latest' && 'windows-amd64' }}
           path: .
 
       - name: Extract Artifact on Linux
         if: matrix.os == 'ubuntu-latest'
         run: unzip neiasit-linux-amd64.zip
-
-#      - name: Extract Artifact on macOS
-#        if: matrix.os == 'macos-latest'
-#        run: unzip neiasit-darwin-amd64.zip
 
       - name: Extract Artifact on Windows
         if: matrix.os == 'windows-latest'
@@ -80,10 +78,6 @@ jobs:
       - name: Run CLI on Linux
         if: matrix.os == 'ubuntu-latest'
         run: ./neiasit --help
-
-#      - name: Run CLI on macOS
-#        if: matrix.os == 'macos-latest'
-#        run: ./neiasit --help
 
       - name: Run CLI on Windows
         if: matrix.os == 'windows-latest'
@@ -96,22 +90,58 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      - name: Download Artifact for Linux
+      - name: Download Artifact for Linux amd64
         uses: actions/download-artifact@v2
         with:
           name: neiasit-linux-amd64
           path: .
 
-#      - name: Download Artifact for macOS
-#        uses: actions/download-artifact@v2
-#        with:
-#          name: neiasit-darwin-amd64
-#          path: .
+      - name: Download Artifact for Linux arm64
+        uses: actions/download-artifact@v2
+        with:
+          name: neiasit-linux-arm64
+          path: .
 
-      - name: Download Artifact for Windows
+      - name: Download Artifact for Linux arm
+        uses: actions/download-artifact@v2
+        with:
+          name: neiasit-linux-arm
+          path: .
+
+      - name: Download Artifact for Windows amd64
         uses: actions/download-artifact@v2
         with:
           name: neiasit-windows-amd64
+          path: .
+
+      - name: Download Artifact for Windows 386
+        uses: actions/download-artifact@v2
+        with:
+          name: neiasit-windows-386
+          path: .
+
+      - name: Download Artifact for FreeBSD amd64
+        uses: actions/download-artifact@v2
+        with:
+          name: neiasit-freebsd-amd64
+          path: .
+
+      - name: Download Artifact for FreeBSD arm64
+        uses: actions/download-artifact@v2
+        with:
+          name: neiasit-freebsd-arm64
+          path: .
+
+      - name: Download Artifact for OpenBSD amd64
+        uses: actions/download-artifact@v2
+        with:
+          name: neiasit-openbsd-amd64
+          path: .
+
+      - name: Download Artifact for OpenBSD arm64
+        uses: actions/download-artifact@v2
+        with:
+          name: neiasit-openbsd-arm64
           path: .
 
       - name: Create Release
@@ -125,7 +155,7 @@ jobs:
           draft: false
           prerelease: false
 
-      - name: Upload Release Asset for Linux
+      - name: Upload Release Asset for Linux amd64
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
@@ -135,17 +165,27 @@ jobs:
           asset_name: neiasit-linux-amd64.zip
           asset_content_type: application/zip
 
-#      - name: Upload Release Asset for macOS
-#        uses: actions/upload-release-asset@v1
-#        env:
-#          GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
-#        with:
-#          upload_url: ${{ steps.create_release.outputs.upload_url }}
-#          asset_path: ./neiasit-darwin-amd64.zip
-#          asset_name: neiasit-darwin-amd64.zip
-#          asset_content_type: application/zip
+      - name: Upload Release Asset for Linux arm64
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./neiasit-linux-arm64.zip
+          asset_name: neiasit-linux-arm64.zip
+          asset_content_type: application/zip
 
-      - name: Upload Release Asset for Windows
+      - name: Upload Release Asset for Linux arm
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./neiasit-linux-arm.zip
+          asset_name: neiasit-linux-arm.zip
+          asset_content_type: application/zip
+
+      - name: Upload Release Asset for Windows amd64
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
@@ -153,4 +193,54 @@ jobs:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ./neiasit-windows-amd64.zip
           asset_name: neiasit-windows-amd64.zip
+          asset_content_type: application/zip
+
+      - name: Upload Release Asset for Windows 386
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./neiasit-windows-386.zip
+          asset_name: neiasit-windows-386.zip
+          asset_content_type: application/zip
+
+      - name: Upload Release Asset for FreeBSD amd64
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./neiasit-freebsd-amd64.zip
+          asset_name: neiasit-freebsd-amd64.zip
+          asset_content_type: application/zip
+
+      - name: Upload Release Asset for FreeBSD arm64
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./neiasit-freebsd-arm64.zip
+          asset_name: neiasit-freebsd-arm64.zip
+          asset_content_type: application/zip
+
+      - name: Upload Release Asset for OpenBSD amd64
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./neiasit-openbsd-amd64.zip
+          asset_name: neiasit-openbsd-amd64.zip
+          asset_content_type: application/zip
+
+      - name: Upload Release Asset for OpenBSD arm64
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./neiasit-openbsd-arm64.zip
+          asset_name: neiasit-openbsd-arm64.zip
           asset_content_type: application/zip
