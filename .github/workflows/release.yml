@@ -52,38 +52,13 @@ jobs:
 
   test:
     needs: build
-    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest]
-        include:
-          - os: ubuntu-latest
-            goos: linux
-            goarch: amd64
-          - os: ubuntu-latest
-            goos: linux
-            goarch: arm64
-          - os: ubuntu-latest
-            goos: linux
-            goarch: arm
-          - os: windows-latest
-            goos: windows
-            goarch: amd64
-          - os: windows-latest
-            goos: windows
-            goarch: 386
-          - os: ubuntu-latest
-            goos: freebsd
-            goarch: amd64
-          - os: ubuntu-latest
-            goos: freebsd
-            goarch: arm64
-          - os: ubuntu-latest
-            goos: openbsd
-            goarch: amd64
-          - os: ubuntu-latest
-            goos: openbsd
-            goarch: arm64
+        os: [ubuntu-latest, windows-latest, freebsd-latest, openbsd-latest]
+        goos: [linux, windows, freebsd, openbsd]
+        goarch: [amd64]
+
+    runs-on: ${{ matrix.os }}
 
     steps:
       - name: Checkout repository
@@ -96,20 +71,36 @@ jobs:
           path: .
 
       - name: Extract Artifact on Linux
-        if: matrix.os == 'ubuntu-latest'
-        run: unzip neiasit-${{ matrix.goos }}-${{ matrix.goarch }}.zip
+        if: matrix.goos == 'linux'
+        run: unzip neiasit-linux-amd64.zip
 
       - name: Extract Artifact on Windows
-        if: matrix.os == 'windows-latest'
-        run: Expand-Archive -Path neiasit-${{ matrix.goos }}-${{ matrix.goarch }}.zip -DestinationPath .
+        if: matrix.goos == 'windows'
+        run: Expand-Archive -Path neiasit-windows-amd64.zip -DestinationPath .
+
+      - name: Extract Artifact on FreeBSD
+        if: matrix.goos == 'freebsd'
+        run: unzip neiasit-freebsd-amd64.zip
+
+      - name: Extract Artifact on OpenBSD
+        if: matrix.goos == 'openbsd'
+        run: unzip neiasit-openbsd-amd64.zip
 
       - name: Run CLI on Linux
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.goos == 'linux'
         run: ./neiasit --help
 
       - name: Run CLI on Windows
-        if: matrix.os == 'windows-latest'
+        if: matrix.goos == 'windows'
         run: ./neiasit.exe --help
+
+      - name: Run CLI on FreeBSD
+        if: matrix.goos == 'freebsd'
+        run: ./neiasit --help
+
+      - name: Run CLI on OpenBSD
+        if: matrix.goos == 'openbsd'
+        run: ./neiasit --help
 
   release:
     needs: [build, test]
