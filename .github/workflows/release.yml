@@ -27,6 +27,17 @@ jobs:
           GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} \
           go build -o neiasit${{ matrix.goos == 'windows' && '.exe' || '' }} ./cmd/cli
 
+      - name: Sign macOS binary
+        if: matrix.goos == 'darwin'
+        run: |
+          echo ${{ secrets.APPLE_CERTIFICATE }} | base64 --decode > /tmp/certificate.p12
+          security create-keychain -p "actions" build.keychain
+          security import /tmp/certificate.p12 -k build.keychain -P ${{ secrets.CERTIFICATE_PASSWORD }} -A
+          security list-keychains -s build.keychain
+          security unlock-keychain -p "actions" build.keychain
+          security set-key-partition-list -S apple-tool:,apple: -s -k "actions" build.keychain
+          codesign --deep --force --verbose --sign "Developer ID Application: Your Name (TEAMID)" neiasit
+
       - name: Archive neiasit binary
         run: |
           zip neiasit-${{ matrix.goos }}-${{ matrix.goarch }}.zip neiasit${{ matrix.goos == 'windows' && '.exe' || '' }}
@@ -44,19 +55,19 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      - name: Download Artifacts
+      - name: Download Artifact for Linux
         uses: actions/download-artifact@v2
         with:
           name: neiasit-linux-amd64
           path: .
 
-      - name: Download Artifacts
+      - name: Download Artifact for macOS
         uses: actions/download-artifact@v2
         with:
           name: neiasit-darwin-amd64
           path: .
 
-      - name: Download Artifacts
+      - name: Download Artifact for Windows
         uses: actions/download-artifact@v2
         with:
           name: neiasit-windows-amd64
@@ -102,6 +113,38 @@ jobs:
           asset_path: ./neiasit-windows-amd64.zip
           asset_name: neiasit-windows-amd64.zip
           asset_content_type: application/zip
+
+  test_linux:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Download Artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: neiasit-linux-amd64
+          path: .
+
+      - name: Extract Artifact
+        run: unzip neiasit-linux-amd64.zip
+
+      - name: Run CLI
+        run: ./neiasit --help
+
+  test_macos:
+    runs-on: macos-latest
+    needs: build
+    steps:
+      - name: Download Artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: neiasit-darwin-amd64
+          path: .
+
+      - name: Extract Artifact
+        run: unzip neiasit-darwin-amd64.zip
+
+      - name: Run CLI
+        run: ./neiasit --help
 
   test_windows:
     runs-on: windows-latest
