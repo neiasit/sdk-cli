@@ -49,10 +49,8 @@ jobs:
         with:
           name: neiasit-${{ matrix.goos }}-${{ matrix.goarch }}
           path: neiasit-${{ matrix.goos }}-${{ matrix.goarch }}.zip
-
-
   release:
-    needs: [build, test]
+    needs: [build]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
