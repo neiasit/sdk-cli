@@ -49,6 +49,7 @@ jobs:
         with:
           name: neiasit-${{ matrix.goos }}-${{ matrix.goarch }}
           path: neiasit-${{ matrix.goos }}-${{ matrix.goarch }}.zip
+
   release:
     needs: [build]
     runs-on: ubuntu-latest
@@ -56,23 +57,39 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      - name: Download Artifact for Linux amd64
+      - name: Download Artifacts
         uses: actions/download-artifact@v2
         with:
-          name: neiasit-linux-amd64
+          name: ${{ matrix.goos }}-${{ matrix.goarch }}
           path: .
 
-      - name: Download Artifact for Linux arm64
-        uses: actions/download-artifact@v2
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          MY_GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
         with:
-          name: neiasit-linux-arm64
-          path: .
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: false
+          prerelease: false
 
-      - name: Download Artifact for Linux arm
-        uses: actions/download-artifact@v2
+      - name: Upload Release Assets
+        uses: actions/upload-release-asset@v1
+        env:
+          MY_GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
         with:
-          name: neiasit-linux-arm
-          path: .
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./neiasit-${{ matrix.goos }}-${{ matrix.goarch }}.zip
+          asset_name: neiasit-${{ matrix.goos }}-${{ matrix.goarch }}.zip
+          asset_content_type: application/zip
+
+  publish_chocolatey:
+    needs: [release]
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
 
       - name: Download Artifact for Windows amd64
         uses: actions/download-artifact@v2
@@ -80,133 +97,93 @@ jobs:
           name: neiasit-windows-amd64
           path: .
 
-      - name: Download Artifact for Windows 386
-        uses: actions/download-artifact@v2
-        with:
-          name: neiasit-windows-386
-          path: .
+      - name: Set up Chocolatey
+        run: |
+          Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
 
-      - name: Download Artifact for FreeBSD amd64
-        uses: actions/download-artifact@v2
-        with:
-          name: neiasit-freebsd-amd64
-          path: .
+      - name: Create Chocolatey Package
+        run: |
+          New-Item -Path tools -Name chocolateyInstall.ps1 -ItemType "file" -Force
+          Add-Content -Path tools/chocolateyInstall.ps1 -Value @"
+          $packageName = 'sdk-cli'
+          $url = 'https://github.com/BobrePatre/sdk-cli/releases/download/${{ github.ref }}/neiasit-windows-amd64.zip'
+          $toolsDir = "$(Split-Path -parent $MyInvocation.MyCommand.Definition)"
+          $zipPath = Join-Path $toolsDir 'sdk-cli.zip'
+          $binPath = Join-Path $toolsDir 'sdk-cli.exe'
+          Invoke-WebRequest -Uri $url -OutFile $zipPath
+          Add-Type -AssemblyName 'System.IO.Compression.FileSystem'
+          [System.IO.Compression.ZipFile]::ExtractToDirectory($zipPath, $toolsDir)
+          Move-Item $binPath (Join-Path $env:ChocolateyInstall 'bin\sdk-cli.exe')
+          Install-ChocolateyShortcut -shortcutFilePath "$env:ProgramData\Microsoft\Windows\Start Menu\Programs\SDK CLI.lnk" -targetPath (Join-Path $env:ChocolateyInstall 'bin\sdk-cli.exe')
+          "@
 
-      - name: Download Artifact for FreeBSD arm64
-        uses: actions/download-artifact@v2
-        with:
-          name: neiasit-freebsd-arm64
-          path: .
+          New-Item -Path tools -Name chocolateyUninstall.ps1 -ItemType "file" -Force
+          Add-Content -Path tools/chocolateyUninstall.ps1 -Value @"
+          $binPath = Join-Path $env:ChocolateyInstall 'bin\sdk-cli.exe'
+          Remove-Item $binPath -Force
+          Remove-Item "$env:ProgramData\Microsoft\Windows\Start Menu\Programs\SDK CLI.lnk" -Force
+          "@
 
-      - name: Download Artifact for OpenBSD amd64
-        uses: actions/download-artifact@v2
-        with:
-          name: neiasit-openbsd-amd64
-          path: .
+          $packagePath = (Join-Path $PSScriptRoot 'sdk-cli.nuspec')
+          New-Item -Path $packagePath -ItemType "file" -Force
+          Add-Content -Path $packagePath -Value @"
+          <?xml version="1.0"?>
+          <package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
+            <metadata>
+              <id>sdk-cli</id>
+              <version>${{ github.ref }}</version>
+              <title>SDK CLI</title>
+              <authors>Neiasit Corp</authors>
+              <owners>Neiasit Corp</owners>
+              <description>A CLI tool for managing SDKs.</description>
+              <tags>sdk cli</tags>
+              <licenseUrl>https://github.com/BobrePatre/sdk-cli/blob/main/LICENSE</licenseUrl>
+              <projectUrl>https://github.com/BobrePatre/sdk-cli</projectUrl>
+              <iconUrl>https://raw.githubusercontent.com/BobrePatre/sdk-cli/main/icon.png</iconUrl>
+            </metadata>
+          </package>
+          "@
 
-      - name: Download Artifact for OpenBSD arm64
-        uses: actions/download-artifact@v2
-        with:
-          name: neiasit-openbsd-arm64
-          path: .
+          choco pack
+          choco push sdk-cli.${{ github.ref }}.nupkg --source https://push.chocolatey.org/ --api-key ${{ secrets.CHOCOLATEY_API_KEY }}
 
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
+  publish_homebrew:
+    needs: [release]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Homebrew Tap Repository
+        uses: actions/checkout@v2
         with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
-          draft: false
-          prerelease: false
+          repository: neiasit/neiasit
+          token: ${{ secrets.MY_GITHUB_TOKEN }}
+          path: homebrew-tap
 
-      - name: Upload Release Asset for Linux amd64
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./neiasit-linux-amd64.zip
-          asset_name: neiasit-linux-amd64.zip
-          asset_content_type: application/zip
+      - name: Update Homebrew Formula
+        run: |
+          cd homebrew-tap/Formula
+          sha256=$(shasum -a 256 ../../neiasit-linux-amd64.zip | cut -d ' ' -f 1)
+          cat <<EOF > sdk-cli.rb
+          class SdkCli < Formula
+            desc "A CLI tool for managing SDKs."
+            homepage "https://github.com/BobrePatre/sdk-cli"
+            url "https://github.com/BobrePatre/sdk-cli/releases/download/${{ github.ref }}/neiasit-linux-amd64.zip"
+            sha256 "$sha256"
 
-      - name: Upload Release Asset for Linux arm64
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./neiasit-linux-arm64.zip
-          asset_name: neiasit-linux-arm64.zip
-          asset_content_type: application/zip
+            def install
+              bin.install "sdk-cli"
+            end
 
-      - name: Upload Release Asset for Linux arm
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./neiasit-linux-arm.zip
-          asset_name: neiasit-linux-arm.zip
-          asset_content_type: application/zip
+            test do
+              system "#{bin}/sdk-cli", "--version"
+            end
+          end
+          EOF
 
-      - name: Upload Release Asset for Windows amd64
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./neiasit-windows-amd64.zip
-          asset_name: neiasit-windows-amd64.zip
-          asset_content_type: application/zip
-
-      - name: Upload Release Asset for Windows 386
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./neiasit-windows-386.zip
-          asset_name: neiasit-windows-386.zip
-          asset_content_type: application/zip
-
-      - name: Upload Release Asset for FreeBSD amd64
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./neiasit-freebsd-amd64.zip
-          asset_name: neiasit-freebsd-amd64.zip
-          asset_content_type: application/zip
-
-      - name: Upload Release Asset for FreeBSD arm64
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./neiasit-freebsd-arm64.zip
-          asset_name: neiasit-freebsd-arm64.zip
-          asset_content_type: application/zip
-
-      - name: Upload Release Asset for OpenBSD amd64
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./neiasit-openbsd-amd64.zip
-          asset_name: neiasit-openbsd-amd64.zip
-          asset_content_type: application/zip
-
-      - name: Upload Release Asset for OpenBSD arm64
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./neiasit-openbsd-arm64.zip
-          asset_name: neiasit-openbsd-arm64.zip
-          asset_content_type: application/zip
+      - name: Commit and Push Changes
+        run: |
+          cd homebrew-tap
+          git config --global user.email "Ge0rgiusgus@yandex.ru"
+          git config --global user.name "BobrePatre"
+          git add Formula/sdk-cli.rb
+          git commit -m "Update sdk-cli to version ${{ github.ref }}"
+          git push
