@@ -3,9 +3,9 @@ package initialize
 import (
 	"fmt"
 	"github.com/labstack/gommon/color"
+	"github.com/neiasit/sdk-cli/internal/initialize/ui"
 	"github.com/spf13/cobra"
 	"os"
-	"sdk-cli/internal/initialize/ui"
 )
 
 func NewCmd() *cobra.Command {

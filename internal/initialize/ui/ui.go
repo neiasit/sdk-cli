@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/labstack/gommon/color"
+	"github.com/neiasit/sdk-cli/internal/initialize/models"
+	"github.com/neiasit/sdk-cli/internal/initialize/usecase"
 	"os"
-	"sdk-cli/internal/initialize/models"
-	"sdk-cli/internal/initialize/usecase"
 	"strings"
 )
 

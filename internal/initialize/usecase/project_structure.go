@@ -2,11 +2,11 @@ package usecase
 
 import (
 	"fmt"
+	"github.com/neiasit/sdk-cli/internal/initialize/models"
+	"github.com/neiasit/sdk-cli/pkg"
+	"github.com/neiasit/sdk-cli/templates"
 	"os"
 	"os/exec"
-	"sdk-cli/internal/initialize/models"
-	"sdk-cli/pkg"
-	"sdk-cli/templates"
 	"slices"
 	"text/template"
 )

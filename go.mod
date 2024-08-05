@@ -1,4 +1,4 @@
-module sdk-cli
+module github.com/neiasit/sdk-cli
 
 go 1.22.5
 
@@ -9,6 +9,8 @@ require (
 )
 
 require (
+	github.com/briandowns/spinner v1.23.1 // indirect
+	github.com/fatih/color v1.7.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
